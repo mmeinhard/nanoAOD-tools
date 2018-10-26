@@ -31,11 +31,13 @@ class btagSFProducer(Module):
     """Calculate btagging scale factors
         algo has to be either 'csvv2' or 'cmva'
     """
-    def __init__(self, era, algo = 'csvv2', sfFileName = None, verbose = 0):
+    def __init__(self, era, algo = 'csvv2', jetType = "Jet", sfFileName = None, verbose = 0):
 
         self.era = era
 
         self.algo = algo.lower()
+
+        self.jetType = jetType
 
         self.verbose = verbose
 
@@ -146,16 +148,16 @@ class btagSFProducer(Module):
         self.branchNames_central_and_systs = {}
         for central_or_syst in self.central_and_systs:
             if central_or_syst == "central":
-                self.branchNames_central_and_systs[central_or_syst] = "Jet_btagSF"
+                self.branchNames_central_and_systs[central_or_syst] = "%s_btagSF" % self.jetType
             else:
-                self.branchNames_central_and_systs[central_or_syst] = "Jet_btagSF_%s" % central_or_syst
+                self.branchNames_central_and_systs[central_or_syst] = "%s_btagSF_%s" % (self.jetType, central_or_syst)
 
         self.branchNames_central_and_systs_shape_corr = {}
         for central_or_syst in self.central_and_systs_shape_corr:
             if central_or_syst == "central":
-                self.branchNames_central_and_systs_shape_corr[central_or_syst] = "Jet_btagSF_shape"
+                self.branchNames_central_and_systs_shape_corr[central_or_syst] = "%s_btagSF_shape" % self.jetType
             else:
-                self.branchNames_central_and_systs_shape_corr[central_or_syst] = "Jet_btagSF_shape_%s" % central_or_syst
+                self.branchNames_central_and_systs_shape_corr[central_or_syst] = "%s_btagSF_shape_%s" % (self.jetType, central_or_syst)
 
     def beginJob(self):
         # initialize BTagCalibrationReader
@@ -186,9 +188,9 @@ class btagSFProducer(Module):
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.out = wrappedOutputTree
         for central_or_syst in self.central_and_systs:
-            self.out.branch(self.branchNames_central_and_systs[central_or_syst], "F", lenVar="nJet")
+            self.out.branch(self.branchNames_central_and_systs[central_or_syst], "F", lenVar="n%s" % self.jetType)
         for central_or_syst in self.central_and_systs_shape_corr:
-            self.out.branch(self.branchNames_central_and_systs_shape_corr[central_or_syst], "F", lenVar="nJet")
+            self.out.branch(self.branchNames_central_and_systs_shape_corr[central_or_syst], "F", lenVar="n%s" % self.jetType)
 
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         pass
@@ -259,7 +261,7 @@ class btagSFProducer(Module):
 
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
-        jets = Collection(event, "Jet")
+        jets = Collection(event, self.jetType)
 
         discr = None
         if self.algo == "csvv2":
@@ -271,7 +273,7 @@ class btagSFProducer(Module):
         else:
             raise ValueError("ERROR: Invalid algorithm '%s'! Please choose either 'csvv2' or 'cmva'." % self.algo)
 
-        preloaded_jets = [(jet.pt, jet.eta, self.getFlavorBTV(jet.partonFlavour), getattr(jet, discr)) for jet in jets]
+        preloaded_jets = [(jet.pt, jet.eta, 0, getattr(jet, discr)) for jet in jets]
         reader = self.getReader('M', False)
         for central_or_syst in self.central_and_systs:
             central_or_syst = central_or_syst.lower()
@@ -288,5 +290,10 @@ class btagSFProducer(Module):
 
 # define modules using the syntax 'name = lambda : constructor' to avoid having them loaded when not needed
 
-btagSF2016 = lambda : btagSFProducer("2016")
-btagSF2017 = lambda : btagSFProducer("2017")
+btagSF2016 = lambda : btagSFProducer("2016","Jet")
+btagSF2017 = lambda : btagSFProducer("2017","Jet")
+btagSF2016SubjetAK8 = lambda : btagSFProducer("2016","SubJet")
+btagSF2017SubjetAK8 = lambda : btagSFProducer("2017","SubJet")
+btagSF2016SubjetHTT = lambda : btagSFProducer("2016","HTTV2Subjets")
+btagSF2017SubjetHTT = lambda : btagSFProducer("2017","HTTV2Subjets")
+

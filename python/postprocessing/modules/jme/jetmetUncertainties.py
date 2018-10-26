@@ -10,11 +10,12 @@ from PhysicsTools.NanoAODTools.postprocessing.modules.jme.jetSmearer import jetS
 from PhysicsTools.NanoAODTools.postprocessing.modules.jme.JetReCalibrator import JetReCalibrator
 
 class jetmetUncertaintiesProducer(Module):
-    def __init__(self, era, globalTag, jesUncertainties = [ "Total" ], jetType = "AK4PFchs", redoJEC=False, noGroom=False):
+    def __init__(self, era, globalTag, jesUncertainties = [ "Total" ], jetType = "AK4PFchs", redoJEC=False, noGroom=False, subjetJEC=False):
 
         self.era = era
 	self.redoJEC = redoJEC
         self.noGroom = noGroom
+        self.subjetJEC = subjetJEC
         #--------------------------------------------------------------------------------------------
         # CV: globalTag and jetType not yet used, as there is no consistent set of txt files for
         #     JES uncertainties and JER scale factors and uncertainties yet
@@ -23,9 +24,10 @@ class jetmetUncertaintiesProducer(Module):
         self.jesUncertainties = jesUncertainties
 
         # smear jet pT to account for measured difference in JER between data and simulation.
-        self.jerInputFileName = "Spring16_25nsV10_MC_PtResolution_" + jetType + ".txt"
-        self.jerUncertaintyInputFileName = "Spring16_25nsV10_MC_SF_" + jetType + ".txt"
+        self.jerInputFileName = "Summer16_25nsV1_MC_PtResolution_" + jetType + ".txt"
+        self.jerUncertaintyInputFileName = "Summer16_25nsV1_MC_SF_" + jetType + ".txt"
         self.jetSmearer = jetSmearer(globalTag, jetType, self.jerInputFileName, self.jerUncertaintyInputFileName)
+
 
         if "AK4" in jetType : 
             self.jetBranchName = "Jet"
@@ -38,10 +40,29 @@ class jetmetUncertaintiesProducer(Module):
             self.subJetBranchName = "SubJet"
             self.genJetBranchName = "GenJetAK8"
             self.genSubJetBranchName = "SubGenJetAK8"
+            if self.subjetJEC:
+                self.jetBranchName = "SubJet"
+                self.jerInputFileName = "Summer16_25nsV1_MC_PtResolution_AK4PFchs.txt"
+                self.jerUncertaintyInputFileName = "Summer16_25nsV1_MC_SF_AK4PFchs.txt"
+                self.jetSmearer = jetSmearer(globalTag, jetType, self.jerInputFileName, self.jerUncertaintyInputFileName)
             if not self.noGroom:
                 self.doGroomed = True
             else:
                 self.doGroomed = False
+            self.corrMET = False
+        elif "HTT" in jetType :
+            self.jerInputFileName = "Summer16_25nsV1_MC_PtResolution_AK8PFPuppi.txt"
+            self.jerUncertaintyInputFileName = "Summer16_25nsV1_MC_SF_AK8PFPuppi.txt"
+            self.jetBranchName = "HTTV2"
+            if self.subjetJEC:
+                self.jetBranchName = "HTTV2Subjets"
+                self.jerInputFileName = "Summer16_25nsV1_MC_PtResolution_AK4PFchs.txt"
+                self.jerUncertaintyInputFileName = "Summer16_25nsV1_MC_SF_AK4PFchs.txt"
+            self.jetSmearer = jetSmearer(globalTag, jetType, self.jerInputFileName, self.jerUncertaintyInputFileName)
+            self.subJetBranchName = "HTTV2Subjets"
+            self.genJetBranchName = "genHTTV2"
+            self.genSubJetBranchName = "genHTTV2Subjets"
+            self.doGroomed = False
             self.corrMET = False
         else:
             raise ValueError("ERROR: Invalid jet type = '%s'!" % jetType)
@@ -55,18 +76,32 @@ class jetmetUncertaintiesProducer(Module):
         # read jet energy scale (JES) uncertainties
         # (downloaded from https://twiki.cern.ch/twiki/bin/view/CMS/JECDataMC )
         self.jesInputFilePath = os.environ['CMSSW_BASE'] + "/src/PhysicsTools/NanoAODTools/data/jme/"
-        if len(jesUncertainties) == 1 and jesUncertainties[0] == "Total":
+        if jetType == "HTTV2" and len(jesUncertainties) == 1 and jesUncertainties[0] == "Total":
+            self.jesUncertaintyInputFileName = "Fall17_17Nov2017_V6_MC_Uncertainty_AK8PFPuppi.txt"
+            if self.subjetJEC:
+                self.jesUncertaintyInputFileName = "Fall17_17Nov2017_V6_MC_Uncertainty_AK4PFchs.txt"
+        elif jetType == "HTTV2" and jesUncertainties[0] == "All":
+            self.jesUncertaintyInputFileName = "Fall17_17Nov2017_V6_MC_UncertaintySources_AK8PFPuppi.txt"
+            if self.subjetJEC:
+                self.jesUncertaintyInputFileName = "Fall17_17Nov2017_V6_MC_UncertaintySources_AK4PFchs.txt"
+        elif len(jesUncertainties) == 1 and jesUncertainties[0] == "Total":
             if self.era == "2016":
                 self.jesUncertaintyInputFileName = "Summer16_23Sep2016V4_MC_Uncertainty_" + jetType + ".txt"
             elif self.era == "2017":
-                self.jesUncertaintyInputFileName = "Fall17_17Nov2017_V6_MC_Uncertainty_" + jetType + ".txt"
+                if self.subjetJEC and "AK8" in jetType:
+                    self.jesUncertaintyInputFileName = "Fall17_17Nov2017_V6_MC_Uncertainty_AK4PFchs.txt"
+                else:
+                    self.jesUncertaintyInputFileName = "Fall17_17Nov2017_V6_MC_Uncertainty_" + jetType + ".txt"
             else:
                 raise ValueError("ERROR: Invalid era = '%s'!" % self.era)
         else:
             if self.era == "2016":
                 self.jesUncertaintyInputFileName = "Summer16_23Sep2016V4_MC_UncertaintySources_" + jetType + ".txt"
             elif self.era == "2017":
-                self.jesUncertaintyInputFileName = "Fall17_17Nov2017_V6_MC_UncertaintySources_" + jetType + ".txt"
+                if self.subjetJEC and "AK8" in jetType:
+                    self.jesUncertaintyInputFileName = "Fall17_17Nov2017_V6_MC_UncertaintySources_AK4PFchs.txt"
+                else:
+                    self.jesUncertaintyInputFileName = "Fall17_17Nov2017_V6_MC_UncertaintySources_" + jetType + ".txt"
             else:
                 raise ValueError("ERROR: Invalid era = '%s'!" % self.era)
 
@@ -78,7 +113,7 @@ class jetmetUncertaintiesProducer(Module):
                 sources = filter(lambda x: x.startswith("[") and x.endswith("]"), lines)
                 sources = map(lambda x: x[1:-1], sources)
                 self.jesUncertainties = sources
-            
+
 
 	if self.redoJEC :
 	    self.jetReCalibrator = JetReCalibrator(globalTag, jetType , True, self.jesInputFilePath, calculateSeparateCorrections = False, calculateType1METCorrection  = False)
@@ -158,6 +193,9 @@ class jetmetUncertaintiesProducer(Module):
         """process event, return True (go to next module) or False (fail, go to next event)"""
         jets = Collection(event, self.jetBranchName )
         genJets = Collection(event, self.genJetBranchName )
+        if self.subjetJEC == True:
+            jets = Collection(event, self.subJetBranchName )
+            genJets = Collection(event, self.genSubJetBranchName )
 
         if self.doGroomed :
             subJets = Collection(event, self.subJetBranchName )
@@ -428,3 +466,11 @@ jetmetUncertainties2016AK8PuppiNoGroom = lambda : jetmetUncertaintiesProducer("2
 jetmetUncertainties2016AK8PuppiAllNoGroom = lambda : jetmetUncertaintiesProducer("2016", "Summer16_23Sep2016V4_MC", ["All"], jetType="AK8PFPuppi",redoJEC=False,noGroom=True)
 jetmetUncertainties2017AK8Puppi = lambda : jetmetUncertaintiesProducer("2017", "Fall17_17Nov2017_V6_MC", [ "Total" ], jetType="AK8PFPuppi")
 jetmetUncertainties2017AK8PuppiAll = lambda : jetmetUncertaintiesProducer("2017", "Fall17_17Nov2017_V6_MC", ["All"], jetType="AK8PFPuppi")
+jetmetUncertainties2017AK8PuppiSubjet = lambda : jetmetUncertaintiesProducer("2017", "Fall17_17Nov2017_V6_MC", [ "Total" ], jetType="AK8PFPuppi",noGroom=True,subjetJEC=True)
+jetmetUncertainties2017AK8PuppiSubjetAll = lambda : jetmetUncertaintiesProducer("2017", "Fall17_17Nov2017_V6_MC", ["All"], jetType="AK8PFPuppi",noGroom=True,subjetJEC=True)
+
+
+jetmetUncertainties2017HTT = lambda : jetmetUncertaintiesProducer("2017", "Fall17_17Nov2017_V6_MC", [ "Total" ], jetType="HTTV2",noGroom=True)
+jetmetUncertainties2017HTTAll = lambda : jetmetUncertaintiesProducer("2017", "Fall17_17Nov2017_V6_MC", ["All"], jetType="HTTV2",noGroom=True)
+jetmetUncertainties2017HTTSubjet = lambda : jetmetUncertaintiesProducer("2017", "Fall17_17Nov2017_V6_MC", [ "Total" ], jetType="HTTV2",noGroom=True,subjetJEC=True)
+jetmetUncertainties2017HTTSubjetAll = lambda : jetmetUncertaintiesProducer("2017", "Fall17_17Nov2017_V6_MC", ["All"], jetType="HTTV2",noGroom=True,subjetJEC=True)
