@@ -9,6 +9,7 @@ from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
 from PhysicsTools.NanoAODTools.postprocessing.tools import matchObjectCollection, matchObjectCollectionMultiple
 from PhysicsTools.NanoAODTools.postprocessing.modules.jme.jetSmearer import jetSmearer
 from PhysicsTools.NanoAODTools.postprocessing.modules.jme.JetReCalibrator import JetReCalibrator
+from PhysicsTools.NanoAODTools.postprocessing.modules.jme.XYMETCorrection import *
 
 class jetmetUncertaintiesProducer(Module):
     def __init__(self, era, globalTag, jesUncertainties = [ "Total" ], archive=None, globalTagProd=None, jetType = "AK4PFchs", metBranchName="MET", jerTag="", isData=False, applySmearing=True):
@@ -213,7 +214,7 @@ class jetmetUncertaintiesProducer(Module):
         rawmet  = Object(event, "RawMET")
         defmet  = Object(event, "MET")
 
-        ( t1met_px,       t1met_py       ) = ( met.pt*math.cos(met.phi), met.pt*math.sin(met.phi) )
+        ( t1met_px,       t1met_py       ) = ( event.MET_ptXY*math.cos(event.MET_phiXY), event.MET_ptXY*math.sin(event.MET_phiXY) )
         ( def_met_px,     def_met_py     ) = ( defmet.pt*math.cos(defmet.phi),   defmet.pt*math.sin(defmet.phi) )
         ( met_px,         met_py         ) = ( rawmet.pt*math.cos(rawmet.phi), rawmet.pt*math.sin(rawmet.phi) )
         ( met_px_nom,     met_py_nom     ) = ( met_px, met_py )
@@ -454,6 +455,15 @@ class jetmetUncertaintiesProducer(Module):
           met_px_unclEnDown  = met_px_unclEnDown - met_deltaPx_unclEn
           met_py_unclEnDown  = met_py_unclEnDown - met_deltaPy_unclEn
 
+          uncormet = math.sqrt(met_px_nom**2 + met_py_nom**2)
+          uncormet_phi = math.atan2(met_py_nom, met_px_nom)
+          runnb = event.run
+          year = 2017
+          isMC = not self.isData
+          npv = event.PV_npvs
+
+        #a,b = METXYCorr_Met_MetPhi(uncormet, uncormet_phi, runnb, year, isMC, npv)
+
 
         self.out.fillBranch("%s_pt_raw" % self.jetBranchName, jets_pt_raw)
         self.out.fillBranch("%s_pt_nom" % self.jetBranchName, jets_pt_nom)
@@ -506,7 +516,8 @@ jetmetUncertainties2016 = lambda : jetmetUncertaintiesProducer("2016", "Summer16
 jetmetUncertainties2016All = lambda : jetmetUncertaintiesProducer("2016", "Summer16_07Aug2017_V11_MC", [ "All" ])
 
 jetmetUncertainties2017 = lambda : jetmetUncertaintiesProducer("2017", "Fall17_17Nov2017_V32_MC", [ "Total" ])
-jetmetUncertainties2017METv2 = lambda : jetmetUncertaintiesProducer("2017", "Fall17_17Nov2017_V32_MC", metBranchName='METFixEE2017')
+jetmetUncertainties2017METv2 = lambda : jetmetUncertaintiesProducer("2017", "Fall17_17Nov2017_V32_MC",  [ "All" ], metBranchName='METFixEE2017')
+jetmetUncertainties2017METv2Data = lambda : jetmetUncertaintiesProducer("2017", "Fall17_17Nov2017DE_V32_DATA", archive="Fall17_17Nov2017_V32_DATA", metBranchName='METFixEE2017', isData=True)
 jetmetUncertainties2017All = lambda : jetmetUncertaintiesProducer("2017", "Fall17_17Nov2017_V32_MC", [ "All" ])
 
 jetmetUncertainties2018 = lambda : jetmetUncertaintiesProducer("2018", "Autumn18_V8_MC", [ "Total" ])
