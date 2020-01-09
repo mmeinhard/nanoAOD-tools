@@ -214,7 +214,7 @@ class jetmetUncertaintiesProducer(Module):
         rawmet  = Object(event, "RawMET")
         defmet  = Object(event, "MET")
 
-        ( t1met_px,       t1met_py       ) = ( event.MET_ptXY*math.cos(event.MET_phiXY), event.MET_ptXY*math.sin(event.MET_phiXY) )
+        ( t1met_px,       t1met_py       ) = ( met.ptXY*math.cos(met.phiXY), met.ptXY*math.sin(met.phiXY) )
         ( def_met_px,     def_met_py     ) = ( defmet.pt*math.cos(defmet.phi),   defmet.pt*math.sin(defmet.phi) )
         ( met_px,         met_py         ) = ( rawmet.pt*math.cos(rawmet.phi), rawmet.pt*math.sin(rawmet.phi) )
         ( met_px_nom,     met_py_nom     ) = ( met_px, met_py )
@@ -455,14 +455,16 @@ class jetmetUncertaintiesProducer(Module):
           met_px_unclEnDown  = met_px_unclEnDown - met_deltaPx_unclEn
           met_py_unclEnDown  = met_py_unclEnDown - met_deltaPy_unclEn
 
-          uncormet = math.sqrt(met_px_nom**2 + met_py_nom**2)
-          uncormet_phi = math.atan2(met_py_nom, met_px_nom)
-          runnb = event.run
-          year = 2017
-          isMC = not self.isData
-          npv = event.PV_npvs
+        #  uncormet = math.sqrt(met_px_nom**2 + met_py_nom**2)
+        #  uncormet_phi = math.atan2(met_py_nom, met_px_nom)
+        #  runnb = event.run
+        #  year = 2017
+        #  isMC = not self.isData
+        #  npv = event.PV_npvs
 
         #a,b = METXYCorr_Met_MetPhi(uncormet, uncormet_phi, runnb, year, isMC, npv)
+
+        #print event.event, uncormet, a
 
 
         self.out.fillBranch("%s_pt_raw" % self.jetBranchName, jets_pt_raw)
@@ -533,3 +535,5 @@ jetmetUncertainties2017AK4PuppiAll = lambda : jetmetUncertaintiesProducer("2017"
 jetmetUncertainties2018AK4Puppi = lambda : jetmetUncertaintiesProducer("2018", "Autumn18_V8_MC", [ "Total" ], jetType="AK4PFPuppi")
 jetmetUncertainties2018AK4PuppiAll = lambda : jetmetUncertaintiesProducer("2018", "Autumn18_V8_MC",  [ "All" ], jetType="AK4PFPuppi")
 
+Testing = lambda : jetmetUncertaintiesProducer(era="2017", globalTag='Fall17_17Nov2017_V32_MC', jerTag='Fall17_V3_MC', jetType = "AK4PFchs", metBranchName="METFixEE2017", applySmearing = True)
+TestingData = lambda : jetmetUncertaintiesProducer(era="2017", archive="Fall17_17Nov2017_V32_DATA", globalTag="Fall17_17Nov2017B_V32_DATA", jerTag='Fall17_V3_MC', jetType = "AK4PFchs", metBranchName="MET" , isData=True)
